@@ -71,6 +71,8 @@ def main():
     app.setStyleSheet(
         """
         QMainWindow, QWidget { background: #f7f9fc; color: #172033; }
+        #linhaTarefa { background: #f7f9fc; }
+        #linhaTarefa QLabel { background: transparent; }
         #tituloTela { color: #143d66; font-size: 26px; font-weight: 700; }
         #legenda { color: #65758b; }
         #descricaoTarefa { color: #607086; font-size: 13px; }

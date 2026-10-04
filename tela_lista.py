@@ -89,6 +89,7 @@ class LinhaTarefa(QWidget):
 
     def __init__(self, tarefa, parent=None):
         super().__init__(parent)
+        self.setObjectName("linhaTarefa")
         self.checkbox = QCheckBox()
         self.checkbox.setAccessibleName(tarefa["titulo"])
         self.checkbox.setChecked(tarefa["concluida"])
