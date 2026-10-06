@@ -25,8 +25,6 @@ O `uv.lock` fixa as versões das dependências. No macOS, o aplicativo prepara a
 
 ## Estrutura
 
-- `app.py`: janela principal e navegação entre as telas.
-- `modelo_tarefas.py`: repositório das tarefas em memória.
-- `tela_lista.py`: listagem, descrição e conclusão das tarefas.
-- `tela_adicionar.py`: formulário de cadastro.
+- `app.py`: arquivo único com as duas telas, a janela principal e a navegação.
+- `ROTEIRO_APRESENTACAO.md`: divisão das falas e roteiro do vídeo.
 - `saida_slides/`: apresentação do trabalho.

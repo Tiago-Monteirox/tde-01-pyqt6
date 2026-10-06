@@ -20,15 +20,15 @@ Fonte: `TDE 1 - Interface Gráfica Python - 2026-02.pdf` (4 páginas).
 
 ## Divisão proposta
 
-As pessoas abaixo são posições a preencher com os nomes reais. Cada integrante deve entender sua implementação e conseguir explicar suas decisões.
+As pessoas abaixo são posições a preencher com os nomes reais. Cada integrante deve conhecer sua parte e conseguir explicar sua participação; a explicação detalhada do código fica com o líder.
 
 | Integrante | Responsabilidade de preparação | Parte no vídeo | Tempo |
 | --- | --- | --- | --- |
-| 1 — líder | Coordenar integração, revisar requisitos e reunir as gravações | Abrir a apresentação; explicar o que é a biblioteca, mantenedor, origem, propósito e usos | 0:00–2:00 |
-| 2 | Preparar instalação e exemplo mínimo executável | Mostrar instalação, importações, primeira janela/tela e organização de widgets, layouts e eventos | 2:00–4:00 |
-| 3 | Implementar a tela da lista e a conclusão de tarefas | Demonstrar a Tela 1 e explicar seu código e seus componentes | 4:00–6:30 |
-| 4 | Implementar cadastro, validação e navegação de retorno | Demonstrar a Tela 2 e explicar seu código, Salvar e Cancelar | 6:30–9:00 |
-| 5 | Verificar os fluxos, pesquisar limitações e organizar referências | Mostrar casos de validação; explicar vantagens, desvantagens, quando usar e onde aprender | 9:00–11:30 |
+| 1 — líder | Coordenar integração, revisar requisitos e reunir as gravações | Explicar todo o código, do `app.py` às duas telas, ao modelo e aos sinais | 3:00–7:15 e encerramento |
+| 2 | Preparar contexto e objetivo do trabalho | Fazer a abertura e explicar o que é o PyQt6 e onde ele faz sentido | 0:00–1:30 |
+| 3 | Preparar instalação e exemplo mínimo executável | Mostrar o uso do `uv`, a execução e o fluxo geral do aplicativo | 1:30–3:00 |
+| 4 | Verificar os fluxos das duas telas | Demonstrar cadastro, descrição, conclusão e cancelamento, sem explicar código | 7:15–9:30 |
+| 5 | Pesquisar limitações e organizar referências | Apresentar análise crítica, fontes e próximos passos | 9:30–11:15 |
 
 O líder coordena, mas as tarefas de implementação e a fala ficam distribuídas. O PDF prevê avaliação parcialmente individual e desconto para membros que não participam.
 
@@ -119,26 +119,4 @@ As falas e os tempos ficam no roteiro e nas notas dos slides. Durante a demonstr
 
 ## Roteiro de fala para a gravação
 
-### Integrante 1 — abertura e contexto (0:00–2:00)
-
-“Olá, somos o grupo ___ e neste vídeo vamos apresentar o PyQt6 por meio de um aplicativo de lista de tarefas. PyQt6 é o conjunto de bindings Python para o framework Qt. Ele permite construir aplicações gráficas de desktop com widgets, layouts e eventos, mantendo acesso ao ecossistema Qt. O projeto resolve o problema de criar interfaces multiplataforma sem abandonar Python. Hoje vamos mostrar a instalação, a estrutura das telas, o código e a execução.”
-
-### Integrante 2 — instalação e estrutura (2:00–4:00)
-
-“Usamos `uv` para reproduzir o ambiente: `uv sync` instala as dependências do `pyproject.toml` conforme o `uv.lock`, e `uv run app.py` executa o programa no ambiente correto. O esqueleto começa pelos imports e pela criação de `QApplication`, que inicializa o ambiente e mantém o loop de eventos. Depois definimos `JanelaPrincipal`, criamos o repositório e as duas telas, colocamos ambas em um `QStackedWidget` e definimos essa pilha como conteúdo central. No final, `show()` exibe a janela e `app.exec()` inicia o loop. Dentro de cada tela, os widgets entram em um layout e a comunicação acontece por sinais, como `clicked` e os sinais próprios `salvou`, `cancelou` e `pedir_adicao`.”
-
-### Integrante 3 — Tela 1 (4:00–6:30)
-
-“A Tela 1 usa um `QListWidget` para organizar as linhas, mas cada linha é um `LinhaTarefa` com seu próprio `QCheckBox`. Assim o checkbox fica centralizado e o status aparece ao lado. O índice do item é guardado no `QListWidgetItem` e usado para atualizar o dicionário correspondente. Quando a tarefa é concluída, emitimos `status_alterado`, aplicamos texto riscado e mudamos a cor. O botão de adicionar emite um sinal que leva à Tela 2.”
-
-### Integrante 4 — Tela 2 (6:30–9:00)
-
-“A Tela 2 usa `QLineEdit` para o título e `QTextEdit` para a descrição opcional. Antes de salvar, removemos espaços e rejeitamos título vazio com uma mensagem de validação. Com um título válido, o repositório adiciona um dicionário com título, descrição e status pendente. O sinal `salvou` atualiza a lista e volta à Tela 1. Cancelar limpa os campos e retorna sem alterar os dados.”
-
-### Integrante 5 — demonstração e análise (9:00–11:30)
-
-“Agora demonstramos o fluxo completo: lista vazia, tentativa inválida, cadastro com descrição, cadastro sem descrição, conclusão direta e cancelamento. Como vantagem, PyQt6 oferece muitos widgets, layouts maduros, documentação do Qt e aplicações desktop multiplataforma. Como limites, a distribuição costuma exigir mais cuidado que uma aplicação web simples, a instalação é maior e a licença deve ser avaliada conforme o projeto. Indicamos a documentação oficial do Riverbank e os exemplos de Qt como caminho para aprofundar.”
-
-### Encerramento (11:30–12:00)
-
-“Com isso mostramos a biblioteca, a estrutura, as duas telas, o código e os principais trade-offs. Obrigado.”
+O roteiro completo, com as falas prontas e as transições entre os integrantes, está em [`ROTEIRO_APRESENTACAO.md`](ROTEIRO_APRESENTACAO.md). A versão atual deixa toda a explicação do código com o líder e distribui entre os demais integrantes o contexto, a instalação, a demonstração e a análise crítica.

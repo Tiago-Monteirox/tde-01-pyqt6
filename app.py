@@ -5,12 +5,50 @@ import stat
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QCoreApplication, QLibraryInfo
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PyQt6.QtCore import QCoreApplication, QLibraryInfo, Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from modelo_tarefas import RepositorioTarefas
-from tela_adicionar import TelaAdicionar
-from tela_lista import TelaLista
+ESTILO = """
+QMainWindow, QWidget { background: #f7f9fc; color: #172033; }
+#linhaTarefa { background: #f7f9fc; }
+#linhaTarefa QLabel { background: transparent; }
+#linhaTarefa QCheckBox { padding: 0px; }
+#linhaTarefa QCheckBox::indicator { width: 26px; height: 26px; }
+#linhaTarefa QCheckBox::indicator:unchecked {
+    border: 2px solid #8b9bad; border-radius: 6px; background: #ffffff;
+}
+#tituloTela { color: #143d66; font-size: 26px; font-weight: 700; }
+#legenda { color: #65758b; }
+#descricaoTarefa { color: #607086; font-size: 13px; }
+QLineEdit, QTextEdit, QListWidget {
+    background: white; border: 1px solid #c9d3df; border-radius: 6px;
+    padding: 8px; font-size: 14px;
+}
+QListWidget { padding: 4px; }
+QListWidget::item { padding: 0px; border-bottom: 1px solid #e1e7ee; }
+QListWidget::item:selected { background: #f7fafd; color: #172033; }
+QPushButton {
+    background: #1f6aa5; color: white; border: none;
+    border-radius: 6px; padding: 10px 16px; font-weight: 600;
+}
+QPushButton:hover { background: #174f7c; }
+"""
 
 
 def _preparar_plugins_qt():
@@ -35,6 +73,184 @@ def _preparar_plugins_qt():
     QCoreApplication.addLibraryPath(str(plugin_root))
 
 
+class LinhaTarefa(QWidget):
+    """Linha visual com checkbox centralizado e status explícito."""
+
+    def __init__(self, tarefa, parent=None):
+        super().__init__(parent)
+        self.setObjectName("linhaTarefa")
+        self.tarefa = tarefa
+
+        self.checkbox = QCheckBox()
+        self.checkbox.setAccessibleName(tarefa["titulo"])
+        self.checkbox.setChecked(tarefa["concluida"])
+        self.checkbox.setFixedWidth(32)
+        self.checkbox.setMinimumHeight(36)
+        self.checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.checkbox.toggled.connect(self.aplicar_status)
+
+        self.titulo = QLabel(tarefa["titulo"])
+        self.titulo.setMinimumHeight(36)
+        self.titulo.setWordWrap(True)
+        self.titulo.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.descricao = QLabel(tarefa["descricao"])
+        self.descricao.setObjectName("descricaoTarefa")
+        self.descricao.setWordWrap(True)
+        self.descricao.setVisible(bool(tarefa["descricao"]))
+        self.descricao.setToolTip(tarefa["descricao"])
+
+        self.status = QLabel()
+        self.status.setMinimumWidth(124)
+        self.status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        texto = QVBoxLayout()
+        texto.setContentsMargins(0, 0, 0, 0)
+        texto.setSpacing(6)
+        texto.addWidget(self.titulo)
+        texto.addWidget(self.descricao)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(18, 10, 24, 10)
+        layout.setSpacing(12)
+        layout.addWidget(self.checkbox, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(texto, 1)
+        layout.addWidget(self.status)
+        self.aplicar_status(tarefa["concluida"])
+
+    def mousePressEvent(self, evento):
+        """Clique no título alterna a tarefa, igual ao clique no checkbox."""
+        ponto = evento.position().toPoint()
+        if evento.button() == Qt.MouseButton.LeftButton and self.titulo.geometry().contains(ponto):
+            self.checkbox.click()
+        super().mousePressEvent(evento)
+
+    def aplicar_status(self, concluida):
+        self.tarefa["concluida"] = concluida
+        self.titulo.setStyleSheet(
+            "font-size: 16px; color: #6b7280; text-decoration: line-through;"
+            if concluida
+            else "font-size: 16px; color: #172033;"
+        )
+        self.status.setText("Concluída" if concluida else "Pendente")
+        self.status.setStyleSheet(
+            "font-weight: 600; font-size: 13px; color: %s"
+            % ("#228b68" if concluida else "#607086")
+        )
+
+
+class TelaLista(QWidget):
+    """Tela 1: lista as tarefas e permite mudar seu status diretamente."""
+
+    pedir_adicao = pyqtSignal()
+
+    def __init__(self, tarefas, parent=None):
+        super().__init__(parent)
+        self.tarefas = tarefas
+
+        titulo = QLabel("Tela 1 - Minhas tarefas")
+        titulo.setObjectName("tituloTela")
+
+        legenda = QLabel("Marque a caixa para concluir uma tarefa.")
+        legenda.setObjectName("legenda")
+
+        self.lista = QListWidget()
+
+        botao_adicionar = QPushButton("Abrir Tela 2 - Adicionar tarefa")
+        botao_adicionar.clicked.connect(self.pedir_adicao.emit)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(12)
+        layout.addWidget(titulo)
+        layout.addWidget(legenda)
+        layout.addWidget(self.lista)
+        layout.addWidget(botao_adicionar)
+        self.atualizar_lista()
+
+    def atualizar_lista(self):
+        self.lista.clear()
+        for tarefa in self.tarefas:
+            linha = LinhaTarefa(tarefa)
+            item = QListWidgetItem()
+            item.setSizeHint(linha.sizeHint())
+            self.lista.addItem(item)
+            self.lista.setItemWidget(item, linha)
+
+
+class TelaAdicionar(QWidget):
+    """Tela 2: formulário que acrescenta uma tarefa à lista em memória."""
+
+    salvou = pyqtSignal()
+    cancelou = pyqtSignal()
+
+    def __init__(self, tarefas, parent=None):
+        super().__init__(parent)
+        self.tarefas = tarefas
+
+        titulo = QLabel("Tela 2 - Adicionar tarefa")
+        titulo.setObjectName("tituloTela")
+
+        legenda = QLabel("Preencha os dados. Cancelar retorna para a Tela 1.")
+        legenda.setObjectName("legenda")
+
+        self.campo_titulo = QLineEdit()
+        self.campo_titulo.setPlaceholderText("Ex.: revisar o roteiro")
+
+        self.campo_descricao = QTextEdit()
+        self.campo_descricao.setPlaceholderText("Detalhes opcionais")
+        self.campo_descricao.setFixedHeight(110)
+
+        formulario = QFormLayout()
+        formulario.addRow("Título *", self.campo_titulo)
+        formulario.addRow("Descrição", self.campo_descricao)
+
+        botao_cancelar = QPushButton("Cancelar (Tela 1)")
+        botao_salvar = QPushButton("Salvar")
+        botao_cancelar.clicked.connect(self.cancelar)
+        botao_salvar.clicked.connect(self.salvar)
+
+        botoes = QHBoxLayout()
+        botoes.addStretch()
+        botoes.addWidget(botao_cancelar)
+        botoes.addWidget(botao_salvar)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(18)
+        layout.addWidget(titulo)
+        layout.addWidget(legenda)
+        layout.addLayout(formulario)
+        layout.addLayout(botoes)
+
+    def salvar(self):
+        titulo = self.campo_titulo.text().strip()
+        if not titulo:
+            QMessageBox.warning(
+                self,
+                "Título obrigatório",
+                "Digite um título antes de salvar a tarefa.",
+            )
+            self.campo_titulo.setFocus()
+            return
+
+        self.tarefas.append(
+            {
+                "titulo": titulo,
+                "descricao": self.campo_descricao.toPlainText().strip(),
+                "concluida": False,
+            }
+        )
+        self.campo_titulo.clear()
+        self.campo_descricao.clear()
+        self.salvou.emit()
+
+    def cancelar(self):
+        self.campo_titulo.clear()
+        self.campo_descricao.clear()
+        self.cancelou.emit()
+
+
 class JanelaPrincipal(QMainWindow):
     """Coordena a navegação entre as duas telas."""
 
@@ -43,9 +259,9 @@ class JanelaPrincipal(QMainWindow):
         self.setWindowTitle("Lista de tarefas - PyQt6")
         self.setMinimumSize(560, 440)
 
-        self.repositorio = RepositorioTarefas()
-        self.tela_lista = TelaLista(self.repositorio)
-        self.tela_adicionar = TelaAdicionar(self.repositorio)
+        tarefas = []
+        self.tela_lista = TelaLista(tarefas)
+        self.tela_adicionar = TelaAdicionar(tarefas)
 
         self.paginas = QStackedWidget()
         self.paginas.addWidget(self.tela_lista)
@@ -68,28 +284,7 @@ class JanelaPrincipal(QMainWindow):
 def main():
     _preparar_plugins_qt()
     app = QApplication(sys.argv)
-    app.setStyleSheet(
-        """
-        QMainWindow, QWidget { background: #f7f9fc; color: #172033; }
-        #linhaTarefa { background: #f7f9fc; }
-        #linhaTarefa QLabel { background: transparent; }
-        #tituloTela { color: #143d66; font-size: 26px; font-weight: 700; }
-        #legenda { color: #65758b; }
-        #descricaoTarefa { color: #607086; font-size: 13px; }
-        QLineEdit, QTextEdit, QListWidget {
-            background: white; border: 1px solid #c9d3df; border-radius: 6px;
-            padding: 8px; font-size: 14px;
-        }
-        QListWidget { padding: 4px; }
-        QListWidget::item { padding: 0px; border-bottom: 1px solid #e1e7ee; }
-        QListWidget::item:selected { background: #f7fafd; color: #172033; }
-        QPushButton {
-            background: #1f6aa5; color: white; border: none;
-            border-radius: 6px; padding: 10px 16px; font-weight: 600;
-        }
-        QPushButton:hover { background: #174f7c; }
-        """
-    )
+    app.setStyleSheet(ESTILO)
     janela = JanelaPrincipal()
     janela.show()
     sys.exit(app.exec())
@@ -97,3 +292,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
